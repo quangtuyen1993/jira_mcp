@@ -215,6 +215,99 @@ async function main() {
     }
   );
 
+  // ─── Tool: Phân tích tổng hợp task (issue + comment + ảnh) ──────
+  server.tool(
+    "jira_analyze_task",
+    "Phân tích tổng hợp một Jira issue: lấy description, comments, và các ảnh đính kèm (dạng base64 để Copilot Vision đọc text trong ảnh). Dùng tool này khi cần hiểu rõ yêu cầu task từ mọi nguồn dữ liệu.",
+    {
+      issueKey: z.string().describe("Mã issue Jira, ví dụ: PROJ-123"),
+      includeComments: z.boolean().optional().default(true).describe("Có lấy comment không (mặc định: true)"),
+      includeImages: z.boolean().optional().default(true).describe("Có tải ảnh về để đọc text không (mặc định: true)"),
+      maxComments: z.number().optional().default(10).describe("Số comment tối đa"),
+      maxImages: z.number().optional().default(5).describe("Số ảnh tối đa (chỉ ảnh < 5MB)"),
+    },
+    async ({ issueKey, includeComments, includeImages, maxComments, maxImages }) => {
+      const issue = await jira.getIssue(issueKey);
+      const parts: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [];
+
+      // ── Phần 1: Thông tin issue ──────────────────────────────
+      const info = [
+        `# 📋 Phân tích Task: ${issue.key}`,
+        ``,
+        `| Field | Value |`,
+        `|---|---|`,
+        `| **Summary** | ${issue.summary} |`,
+        `| **Status** | ${issue.status} |`,
+        `| **Priority** | ${issue.priority} |`,
+        `| **Type** | ${issue.issueType} |`,
+        `| **Assignee** | ${issue.assignee || "Unassigned"} |`,
+        `| **Project** | ${issue.project} |`,
+        `| **Created** | ${issue.created} |`,
+        `| **Updated** | ${issue.updated} |`,
+        `| **Link** | ${issue.url} |`,
+        ``,
+      ];
+      if (issue.description) {
+        info.push(`## 📝 Description`);
+        info.push(issue.description);
+        info.push(``);
+      }
+      parts.push({ type: "text", text: info.join("\n") });
+
+      // ── Phần 2: Comments ────────────────────────────────────
+      if (includeComments) {
+        const comments = await jira.getComments(issueKey, maxComments);
+        if (comments.length > 0) {
+          const cmtLines: string[] = [`## 💬 Comments (${comments.length})`, ``];
+          for (let i = 0; i < comments.length; i++) {
+            const c = comments[i];
+            const body = c.body.length > 1500 ? c.body.substring(0, 1500) + "..." : c.body;
+            cmtLines.push(`### ${i + 1}. ${c.author} — ${c.created}`);
+            cmtLines.push(body);
+            cmtLines.push(``);
+          }
+          parts.push({ type: "text", text: cmtLines.join("\n") });
+        }
+      }
+
+      // ── Phần 3: Ảnh đính kèm (cho Vision đọc text) ─────────
+      if (includeImages) {
+        const attachments = await jira.getAttachments(issueKey);
+        const imageTypes = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"];
+        const images = attachments.filter(a => imageTypes.includes(a.mimeType) && a.size < 5 * 1024 * 1024);
+
+        if (images.length > 0) {
+          parts.push({
+            type: "text",
+            text: `## 🖼️ Ảnh đính kèm (${Math.min(images.length, maxImages)}/${images.length} ảnh được tải về để phân tích)\n`,
+          });
+
+          let loadedCount = 0;
+          for (const img of images) {
+            if (loadedCount >= maxImages) break;
+            try {
+              const { contentType, base64 } = await jira.downloadAttachment(img.downloadUrl);
+              parts.push({ type: "text", text: `### 📸 ${img.filename} (${(img.size / 1024).toFixed(1)} KB)` });
+              parts.push({ type: "text", text: `🔍 *Hãy đọc text trong ảnh dưới đây và tổng hợp thông tin quan trọng:*` });
+              parts.push({ type: "image", data: base64, mimeType: contentType });
+              loadedCount++;
+            } catch {
+              parts.push({ type: "text", text: `- ⚠️ ${img.filename}: Không thể tải` });
+            }
+          }
+        }
+      }
+
+      // ── Kết luận ────────────────────────────────────────────
+      parts.push({
+        type: "text",
+        text: `---\n## 🤖 Yêu cầu phân tích\nDựa trên tất cả thông tin trên (description, comments, và text trong ảnh), hãy:\n1. Tóm tắt yêu cầu chính của task\n2. Liệt kê các điểm cần làm cụ thể\n3. Tổng hợp các ý kiến quan trọng từ comment\n4. Nếu có text trong ảnh, trích xuất và đối chiếu với mô tả`,
+      });
+
+      return { content: parts };
+    }
+  );
+
   // ─── Start server với stdio transport ───────────────────────────
   const transport = new StdioServerTransport();
   await server.connect(transport);
