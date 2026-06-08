@@ -270,38 +270,31 @@ async function main() {
         }
       }
 
-      // ── Phần 3: Ảnh đính kèm (cho Vision đọc text) ─────────
+      // ── Phần 3: Ảnh đính kèm ─ tự động cache về local ─────
       if (includeImages) {
-        const attachments = await jira.getAttachments(issueKey);
-        const imageTypes = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"];
-        const images = attachments.filter(a => imageTypes.includes(a.mimeType) && a.size < 5 * 1024 * 1024);
+        const { saved, errors } = await jira.downloadAttachmentsToCache(issueKey);
 
-        if (images.length > 0) {
+        if (saved.length > 0) {
           parts.push({
             type: "text",
-            text: `## 🖼️ Ảnh đính kèm (${Math.min(images.length, maxImages)}/${images.length} ảnh được tải về để phân tích)\n`,
+            text: `## 🖼️ Ảnh đính kèm (đã cache về local)\n📁 \`${jira.getCacheDir(issueKey)}\`\n`,
           });
-
-          let loadedCount = 0;
-          for (const img of images) {
-            if (loadedCount >= maxImages) break;
-            try {
-              const { contentType, base64 } = await jira.downloadAttachment(img.id, img.downloadUrl);
-              parts.push({ type: "text", text: `### 📸 ${img.filename} (${(img.size / 1024).toFixed(1)} KB)` });
-              parts.push({ type: "text", text: `🔍 *Hãy đọc text trong ảnh dưới đây và tổng hợp thông tin quan trọng:*` });
-              parts.push({ type: "image", data: base64, mimeType: contentType });
-              loadedCount++;
-            } catch {
-              parts.push({ type: "text", text: `- ⚠️ ${img.filename}: Không thể tải` });
-            }
-          }
+          saved.forEach(f => {
+            parts.push({
+              type: "text",
+              text: `- 📸 \`${f}\` → **Hãy dùng tool read_file để đọc ảnh này và trích xuất text bằng Vision**`,
+            });
+          });
+        }
+        if (errors.length > 0) {
+          parts.push({ type: "text", text: `\n⚠️ Lỗi: ${errors.join(", ")}` });
         }
       }
 
       // ── Kết luận ────────────────────────────────────────────
       parts.push({
         type: "text",
-        text: `---\n## 🤖 Yêu cầu phân tích\nDựa trên tất cả thông tin trên (description, comments, và text trong ảnh), hãy:\n1. Tóm tắt yêu cầu chính của task\n2. Liệt kê các điểm cần làm cụ thể\n3. Tổng hợp các ý kiến quan trọng từ comment\n4. Nếu có text trong ảnh, trích xuất và đối chiếu với mô tả`,
+        text: `---\n## 🤖 Yêu cầu phân tích\nDựa trên tất cả thông tin trên (description, comments, và text trong ảnh đã cache ở local), hãy:\n1. Dùng Vision đọc từng file ảnh trong thư mục cache\n2. Tóm tắt yêu cầu chính của task\n3. Liệt kê các điểm cần làm cụ thể\n4. Tổng hợp các ý kiến quan trọng từ comment\n5. Đối chiếu text trong ảnh với mô tả`,
       });
 
       return { content: parts };
