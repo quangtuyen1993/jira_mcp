@@ -22,6 +22,17 @@ export interface JiraIssue {
   url: string;
 }
 
+export interface JiraAttachment {
+  id: string;
+  filename: string;
+  size: number;
+  mimeType: string;
+  created: string;
+  author: string;
+  downloadUrl: string;
+  thumbnailUrl?: string;
+}
+
 export interface JiraSearchResult {
   total: number;
   issues: JiraIssue[];
@@ -176,6 +187,38 @@ export class JiraClient {
   async whoami(): Promise<string> {
     const response = await this.client.get("/rest/api/2/myself");
     return `${response.data.displayName} (${response.data.emailAddress || response.data.name})`;
+  }
+
+  /**
+   * Lấy danh sách file đính kèm của một issue
+   */
+  async getAttachments(issueKey: string): Promise<JiraAttachment[]> {
+    const response = await this.client.get(
+      `/rest/api/2/issue/${issueKey}?fields=attachment`
+    );
+    const attachments = response.data?.fields?.attachment || [];
+    return attachments.map((att: any) => ({
+      id: att.id,
+      filename: att.filename,
+      size: att.size,
+      mimeType: att.mimeType || "",
+      created: att.created || "",
+      author: att.author?.displayName || "Unknown",
+      downloadUrl: att.content || `${this.config.baseUrl}/secure/attachment/${att.id}/${att.filename}`,
+      thumbnailUrl: att.thumbnail || undefined,
+    }));
+  }
+
+  /**
+   * Download nội dung attachment dạng base64 (chỉ dùng cho ảnh < 5MB)
+   */
+  async downloadAttachment(url: string): Promise<{ contentType: string; base64: string }> {
+    const response = await this.client.get(url, {
+      responseType: "arraybuffer",
+    });
+    const contentType: string = String(response.headers["content-type"] || "application/octet-stream");
+    const base64 = Buffer.from(response.data).toString("base64");
+    return { contentType, base64 };
   }
 
   /**

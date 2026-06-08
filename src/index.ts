@@ -128,6 +128,59 @@ async function main() {
     }
   );
 
+  // ─── Tool: Lấy file đính kèm của issue ──────────────────────────
+  server.tool(
+    "jira_get_attachments",
+    "Lấy danh sách file đính kèm (ảnh, tài liệu...) của một Jira issue. Trả về tên file, kích thước, định dạng, và link download. Với ảnh (<5MB), có thể xem trực tiếp.",
+    {
+      issueKey: z.string().describe("Mã issue Jira, ví dụ: PROJ-123"),
+      downloadImages: z.boolean().optional().default(false).describe("Nếu true, tải nội dung ảnh về dạng base64 để xem trực tiếp (chỉ ảnh <5MB)"),
+    },
+    async ({ issueKey, downloadImages }) => {
+      const attachments = await jira.getAttachments(issueKey);
+
+      if (attachments.length === 0) {
+        return {
+          content: [{ type: "text" as const, text: `Issue ${issueKey} không có file đính kèm.` }],
+        };
+      }
+
+      const imageTypes = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml", "image/bmp"];
+      const parts: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [];
+
+      parts.push({
+        type: "text",
+        text: `📎 **${issueKey}** có **${attachments.length}** file đính kèm:\n`,
+      });
+
+      for (const att of attachments) {
+        const sizeKB = (att.size / 1024).toFixed(1);
+        const isImage = imageTypes.includes(att.mimeType);
+        parts.push({
+          type: "text",
+          text: `\n- **${att.filename}** (${sizeKB} KB, ${att.mimeType})\n  📥 Tải về: ${att.downloadUrl}`,
+        });
+
+        // Nếu là ảnh nhỏ và user yêu cầu xem
+        if (isImage && downloadImages && att.size < 5 * 1024 * 1024) {
+          try {
+            const { contentType, base64 } = await jira.downloadAttachment(att.downloadUrl);
+            parts.push({ type: "text", text: `  🖼️ Xem trước:` });
+            parts.push({
+              type: "image",
+              data: base64,
+              mimeType: contentType,
+            });
+          } catch {
+            parts.push({ type: "text", text: `  ⚠️ Không thể tải ảnh (có thể cần xác thực bổ sung)` });
+          }
+        }
+      }
+
+      return { content: parts };
+    }
+  );
+
   // ─── Start server với stdio transport ───────────────────────────
   const transport = new StdioServerTransport();
   await server.connect(transport);
