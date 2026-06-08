@@ -181,6 +181,40 @@ async function main() {
     }
   );
 
+  // ─── Tool: Lấy comment của issue ────────────────────────────────
+  server.tool(
+    "jira_get_comments",
+    "Lấy danh sách comment trên một Jira issue. Hữu ích để xem lịch sử thảo luận, yêu cầu sửa, hoặc ghi chú từ team.",
+    {
+      issueKey: z.string().describe("Mã issue Jira, ví dụ: PROJ-123"),
+      maxResults: z.number().optional().default(20).describe("Số lượng comment tối đa (mặc định 20)"),
+    },
+    async ({ issueKey, maxResults }) => {
+      const comments = await jira.getComments(issueKey, maxResults);
+
+      if (comments.length === 0) {
+        return {
+          content: [{ type: "text" as const, text: `Issue ${issueKey} chưa có comment nào.` }],
+        };
+      }
+
+      const lines: string[] = [
+        `💬 **${issueKey}** có **${comments.length}** comment:\n`,
+      ];
+
+      for (let i = 0; i < comments.length; i++) {
+        const c = comments[i];
+        const body = c.body.length > 1000 ? c.body.substring(0, 1000) + "..." : c.body;
+        lines.push(`---\n### ${i + 1}. ${c.author} — ${c.created}`);
+        lines.push(`${body}\n`);
+      }
+
+      return {
+        content: [{ type: "text" as const, text: lines.join("\n") }],
+      };
+    }
+  );
+
   // ─── Start server với stdio transport ───────────────────────────
   const transport = new StdioServerTransport();
   await server.connect(transport);

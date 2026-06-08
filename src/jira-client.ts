@@ -33,6 +33,14 @@ export interface JiraAttachment {
   thumbnailUrl?: string;
 }
 
+export interface JiraComment {
+  id: string;
+  body: string;
+  author: string;
+  created: string;
+  updated: string;
+}
+
 export interface JiraSearchResult {
   total: number;
   issues: JiraIssue[];
@@ -206,6 +214,24 @@ export class JiraClient {
       author: att.author?.displayName || "Unknown",
       downloadUrl: att.content || `${this.config.baseUrl}/secure/attachment/${att.id}/${att.filename}`,
       thumbnailUrl: att.thumbnail || undefined,
+    }));
+  }
+
+  /**
+   * Lấy danh sách comment của một issue
+   */
+  async getComments(issueKey: string, maxResults: number = 50): Promise<JiraComment[]> {
+    const response = await this.client.get(
+      `/rest/api/2/issue/${issueKey}/comment`,
+      { params: { maxResults } }
+    );
+    const comments = response.data?.comments || [];
+    return comments.map((c: any) => ({
+      id: c.id,
+      body: c.body || "",
+      author: c.author?.displayName || "Unknown",
+      created: c.created || "",
+      updated: c.updated || "",
     }));
   }
 
