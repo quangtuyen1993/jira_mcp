@@ -308,6 +308,36 @@ async function main() {
     }
   );
 
+  // ─── Tool: Cache task về local ──────────────────────────────────
+  server.tool(
+    "jira_cache_task",
+    "Download tất cả ảnh & file đính kèm của một issue về thư mục local (~/.pnj-task/{issueKey}/). Dùng tool này để tạo knowledge base offline, sau đó Copilot có thể đọc file trực tiếp từ ổ đĩa.",
+    {
+      issueKey: z.string().describe("Mã issue Jira, ví dụ: PROJ-123"),
+    },
+    async ({ issueKey }) => {
+      const cacheDir = jira.getCacheDir(issueKey);
+      const { saved, errors } = await jira.downloadAttachmentsToCache(issueKey);
+
+      const lines: string[] = [
+        `📥 **Cache task ${issueKey}** → \`${cacheDir}\`\n`,
+      ];
+
+      if (saved.length > 0) {
+        lines.push(`✅ Đã lưu **${saved.length}** file:`);
+        saved.forEach(f => lines.push(`   - \`${f}\``));
+      }
+      if (errors.length > 0) {
+        lines.push(`\n⚠️ Lỗi **${errors.length}** file:`);
+        errors.forEach(e => lines.push(`   - ${e}`));
+      }
+
+      lines.push(`\n💡 Copilot có thể đọc các file này bằng cách mở trực tiếp đường dẫn.`);
+
+      return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+    }
+  );
+
   // ─── Start server với stdio transport ───────────────────────────
   const transport = new StdioServerTransport();
   await server.connect(transport);

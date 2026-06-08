@@ -1,4 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
 export interface JiraConfig {
   baseUrl: string;
@@ -264,6 +267,40 @@ export class JiraClient {
       const base64 = Buffer.from(response.data).toString("base64");
       return { contentType, base64 };
     }
+  }
+
+  /**
+   * Download tất cả attachments của 1 issue về thư mục local cache.
+   * Thư mục: ~/.pnj-task/{issueKey}/
+   */
+  getCacheDir(issueKey: string): string {
+    return path.join(os.homedir(), ".pnj-task", issueKey);
+  }
+
+  async downloadAttachmentsToCache(issueKey: string): Promise<{ saved: string[]; errors: string[] }> {
+    const atts = await this.getAttachments(issueKey);
+    const cacheDir = this.getCacheDir(issueKey);
+    fs.mkdirSync(cacheDir, { recursive: true });
+
+    const saved: string[] = [];
+    const errors: string[] = [];
+
+    for (const att of atts) {
+      const filePath = path.join(cacheDir, att.filename);
+      try {
+        console.error(`[JiraClient] Saving ${att.filename} to ${filePath}...`);
+        const { contentType, base64 } = await this.downloadAttachment(att.id, att.downloadUrl);
+        const buffer = Buffer.from(base64, "base64");
+        fs.writeFileSync(filePath, buffer);
+        saved.push(filePath);
+        console.error(`[JiraClient] Saved: ${filePath} (${(buffer.length / 1024).toFixed(1)} KB)`);
+      } catch (err: any) {
+        errors.push(`${att.filename}: ${err.message}`);
+        console.error(`[JiraClient] Failed to save ${att.filename}: ${err.message}`);
+      }
+    }
+
+    return { saved, errors };
   }
 
   /**
