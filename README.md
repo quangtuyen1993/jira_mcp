@@ -1,92 +1,76 @@
 # 🎫 Jira MCP Server
 
-[![npm version](https://img.shields.io/npm/v/jira-mcp-server)](https://www.npmjs.com/package/jira-mcp-server)
-[![CI](https://github.com/user/jira-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/user/jira-mcp-server/actions/workflows/ci.yml)
+[![CI](https://github.com/quangtuyen1993/jira_mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/quangtuyen1993/jira_mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**MCP (Model Context Protocol) server** for fetching tasks/issues from Jira.  
-Works with **VS Code**, **Claude Desktop**, and any MCP-compatible client.
+**MCP (Model Context Protocol) server** lấy task/issue từ Jira.  
+Hỗ trợ **VS Code Copilot**, **Claude Desktop** và mọi MCP client.
 
 ## 🛠️ Tools
 
-| Tool | Description |
+| Tool | Mô tả |
 |---|---|
-| `jira_get_issue` | Get issue details by key (e.g. `PROJ-123`) |
-| `jira_search` | Search issues with JQL query |
-| `jira_my_tasks` | Get your open assigned issues |
-| `jira_project_issues` | List all issues in a project |
+| `jira_get_issue` | Lấy chi tiết 1 issue theo key (vd: `PROJ-123`) |
+| `jira_search` | Tìm kiếm issue bằng JQL |
+| `jira_my_tasks` | Lấy danh sách issue đang assign cho bạn |
+| `jira_project_issues` | Lấy danh sách issue trong 1 project |
 
-## 📦 Installation
-
-### Option 1: Install from GitHub
+## 📦 Cài đặt
 
 ```bash
-npm install -g github:your-username/jira-mcp-server
-```
-
-### Option 2: Clone & Build
-
-```bash
-git clone https://github.com/your-username/jira-mcp-server.git
-cd jira-mcp-server
+git clone https://github.com/quangtuyen1993/jira_mcp.git
+cd jira_mcp
 npm install
-npm run bundle    # → dist/jira-mcp.js (single file, no node_modules needed)
+npm run build        # TypeScript → build/
 ```
 
-### Option 3: Download pre-built binary
+## 🔧 Cấu hình Jira
 
-Download `jira-mcp.js` from [GitHub Releases](https://github.com/your-username/jira-mcp-server/releases).
-
-## 🔧 Configuration
-
-Set these environment variables (**required**):
-
-```bash
-export JIRA_BASE_URL=https://jira.your-company.com
-export JIRA_AUTH_TYPE=basic          # or "session"
-export JIRA_USERNAME=you@company.com
-export JIRA_PASSWORD=your-password
-```
-
-Or create a `.env` file:
+Tạo file `.env` từ mẫu:
 
 ```bash
 cp .env.example .env
-# edit .env with your Jira credentials
+```
+
+Sửa `.env` với thông tin Jira của bạn:
+
+```env
+JIRA_BASE_URL=https://jira.your-company.com
+JIRA_AUTH_TYPE=basic
+JIRA_USERNAME=you@company.com
+JIRA_PASSWORD=your-password
 ```
 
 ### Auth Types
 
-| Type | How it works | Best for |
+| Type | Cách hoạt động | Phù hợp |
 |---|---|---|
-| `basic` | Sends `Authorization: Basic` header | Most Jira instances |
-| `session` | Logs in via `/rest/auth/1/session`, uses cookie | Older Jira Server/DC |
+| `basic` | Gửi `Authorization: Basic` header | Hầu hết Jira |
+| `session` | Login qua `/rest/auth/1/session`, dùng cookie | Jira Server/DC cũ |
 
-## 🚀 Quick Start
+## 🧪 Test kết nối
 
 ```bash
-# 1. Test connection
 npm run test
-
-# 2. Start MCP server (if using .env)
-npm run start
-
-# 3. Or use with MCP Inspector (web UI debugger)
-npm run test:inspector
 ```
 
-## 🔌 MCP Client Setup
+Nếu hiện `✅ Tất cả test passed!` là OK.
 
-### VS Code / Claude Desktop
+## 🔌 Kết nối VS Code Copilot
 
-Add to `mcp.json` (VS Code) or `claude_desktop_config.json`:
+### Bước 1: Mở file MCP config
+
+Mở file `~/Library/Application Support/Code/User/mcp.json` (macOS) hoặc `%APPDATA%\Code\User\mcp.json` (Windows).
+
+### Bước 2: Thêm config
 
 ```json
 {
-  "mcpServers": {
-    "jira": {
+  "servers": {
+    "pnj-jira": {
+      "type": "stdio",
       "command": "node",
-      "args": ["/path/to/jira-mcp-server/dist/jira-mcp.js"],
+      "args": ["/đường/dẫn/đến/jira_mcp/build/index.js"],
       "env": {
         "JIRA_BASE_URL": "https://jira.your-company.com",
         "JIRA_AUTH_TYPE": "basic",
@@ -98,22 +82,55 @@ Add to `mcp.json` (VS Code) or `claude_desktop_config.json`:
 }
 ```
 
-## 📋 Usage Examples
+> ⚠️ **Quan trọng:** VS Code dùng `"servers"` (không phải `"mcpServers"`) và cần `"type": "stdio"`.
 
-Once connected, ask your AI agent:
+### Bước 3: Reload VS Code
 
-- *"Get details of issue PROJ-123"*
-- *"What tasks are assigned to me?"*
-- *"Find all issues in project ABC with status 'In Progress'"*
-- *"Search for issues created this week"*
+`Cmd+Shift+P` → `Reload Window`
+
+### Bước 4: Test trong Copilot Chat
+
+Gõ `@pnj-jira` trong chat, hoặc hỏi:
+
+> *"Dùng tool jira_my_tasks lấy danh sách task của tôi"*
+
+## 🔌 Kết nối Claude Desktop
+
+Thêm vào `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "jira": {
+      "command": "node",
+      "args": ["/đường/dẫn/đến/jira_mcp/build/index.js"],
+      "env": {
+        "JIRA_BASE_URL": "https://jira.your-company.com",
+        "JIRA_AUTH_TYPE": "basic",
+        "JIRA_USERNAME": "you@company.com",
+        "JIRA_PASSWORD": "your-password"
+      }
+    }
+  }
+}
+```
+
+> ⚠️ Claude Desktop dùng `"mcpServers"` (khác với VS Code).
+
+## 📋 Ví dụ sử dụng
+
+Sau khi kết nối, hỏi Copilot:
+
+- *"Lấy chi tiết issue PROJ-123"*
+- *"Task nào đang assign cho tôi?"*
+- *"Tìm tất cả issue trong project ABC có status In Progress"*
 
 ## 🏗️ Development
 
 ```bash
-npm install        # Install dependencies
+npm install        # Cài dependencies
 npm run build      # Compile TypeScript → build/
-npm run bundle     # Bundle to single JS file → dist/
-npm run test       # Test Jira connection
+npm run test       # Test kết nối Jira
 ```
 
 ## 📄 License

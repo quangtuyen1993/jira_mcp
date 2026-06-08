@@ -3,21 +3,13 @@
   "version": "1.0.0",
   "description": "MCP server to fetch tasks/issues from Jira",
   "type": "module",
-  "main": "dist/jira-mcp.js",
+  "main": "build/index.js",
   "bin": {
-    "jira-mcp": "dist/jira-mcp.js"
+    "jira-mcp": "build/index.js"
   },
-  "files": [
-    "dist/",
-    "README.md"
-  ],
   "scripts": {
     "build": "tsc",
-    "bundle": "node scripts/bundle.mjs",
-    "pack": "npm run bundle && npm pack",
     "start": "node build/index.js",
-    "start:bundle": "node dist/jira-mcp.js",
-    "dev": "tsc && node build/index.js",
     "test": "npx tsx src/test-connection.ts",
     "test:inspector": "npx @modelcontextprotocol/inspector node build/index.js"
   },

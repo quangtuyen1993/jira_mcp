@@ -1,11 +1,11 @@
-name: Build & Release
+name: Build
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
     tags: ["v*"]
   pull_request:
-    branches: [main, master]
+    branches: [main]
 
 permissions:
   contents: write
@@ -15,21 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: "npm"
-
       - run: npm ci
       - run: npm run build
-      - run: npm run bundle
-
-      - name: Upload bundle artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: jira-mcp-bundle
-          path: dist/jira-mcp.js
 
   release:
     needs: build
@@ -37,25 +28,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          registry-url: "https://registry.npmjs.org"
-
+          cache: "npm"
       - run: npm ci
-      - run: npm run bundle
-
-      - name: Publish to npm
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        continue-on-error: true
-
+      - run: npm run build
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/jira-mcp.js
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
