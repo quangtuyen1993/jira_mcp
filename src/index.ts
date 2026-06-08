@@ -164,7 +164,7 @@ async function main() {
         // Nếu là ảnh nhỏ và user yêu cầu xem
         if (isImage && downloadImages && att.size < 5 * 1024 * 1024) {
           try {
-            const { contentType, base64 } = await jira.downloadAttachment(att.downloadUrl);
+            const { contentType, base64 } = await jira.downloadAttachment(att.id, att.downloadUrl);
             parts.push({ type: "text", text: `  🖼️ Xem trước:` });
             parts.push({
               type: "image",
@@ -286,7 +286,7 @@ async function main() {
           for (const img of images) {
             if (loadedCount >= maxImages) break;
             try {
-              const { contentType, base64 } = await jira.downloadAttachment(img.downloadUrl);
+              const { contentType, base64 } = await jira.downloadAttachment(img.id, img.downloadUrl);
               parts.push({ type: "text", text: `### 📸 ${img.filename} (${(img.size / 1024).toFixed(1)} KB)` });
               parts.push({ type: "text", text: `🔍 *Hãy đọc text trong ảnh dưới đây và tổng hợp thông tin quan trọng:*` });
               parts.push({ type: "image", data: base64, mimeType: contentType });

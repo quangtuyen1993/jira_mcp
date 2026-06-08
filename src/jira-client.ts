@@ -236,15 +236,34 @@ export class JiraClient {
   }
 
   /**
-   * Download nội dung attachment dạng base64 (chỉ dùng cho ảnh < 5MB)
+   * Download nội dung attachment dạng base64.
+   * Jira PNJ dùng URL web /secure/attachment/{id}/{filename}, nên ưu tiên cách này.
    */
-  async downloadAttachment(url: string): Promise<{ contentType: string; base64: string }> {
-    const response = await this.client.get(url, {
-      responseType: "arraybuffer",
-    });
-    const contentType: string = String(response.headers["content-type"] || "application/octet-stream");
-    const base64 = Buffer.from(response.data).toString("base64");
-    return { contentType, base64 };
+  async downloadAttachment(attachmentId: string, url: string): Promise<{ contentType: string; base64: string }> {
+    console.error(`[JiraClient] Downloading attachment ${attachmentId}: ${url}`);
+
+    // Cách 1: Dùng URL từ att.content (thường là /secure/attachment/...)
+    try {
+      const response = await this.client.get(url, {
+        responseType: "arraybuffer",
+        timeout: 30000,
+      });
+      const contentType: string = String(response.headers["content-type"] || "application/octet-stream");
+      const base64 = Buffer.from(response.data).toString("base64");
+      console.error(`[JiraClient] Downloaded ${attachmentId}: ${(base64.length / 1024).toFixed(1)} KB`);
+      return { contentType, base64 };
+    } catch (err: any) {
+      // Cách 2: Fallback REST API endpoint
+      console.error(`[JiraClient] Web URL failed: ${err.message}, trying REST API...`);
+      const apiUrl = `/rest/api/2/attachment/content/${attachmentId}`;
+      const response = await this.client.get(apiUrl, {
+        responseType: "arraybuffer",
+        timeout: 30000,
+      });
+      const contentType: string = String(response.headers["content-type"] || "application/octet-stream");
+      const base64 = Buffer.from(response.data).toString("base64");
+      return { contentType, base64 };
+    }
   }
 
   /**
