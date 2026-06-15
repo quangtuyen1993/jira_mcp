@@ -197,6 +197,36 @@ var JiraClient = class {
     }
   }
   /**
+   * Lấy danh sách các transitions (trạng thái chuyển đổi) khả dụng của issue
+   */
+  async getTransitions(issueKey) {
+    try {
+      const response = await this.client.get(
+        `/rest/api/2/issue/${issueKey}/transitions`
+      );
+      return response.data?.transitions || [];
+    } catch (error) {
+      throw handleAxiosError(error, `Get transitions for issue ${issueKey}`);
+    }
+  }
+  /**
+   * Thực hiện chuyển đổi trạng thái (transition) của issue
+   */
+  async transitionIssue(issueKey, transitionId) {
+    try {
+      await this.client.post(
+        `/rest/api/2/issue/${issueKey}/transitions`,
+        {
+          transition: {
+            id: transitionId
+          }
+        }
+      );
+    } catch (error) {
+      throw handleAxiosError(error, `Transition issue ${issueKey} with ID ${transitionId}`);
+    }
+  }
+  /**
    * Download nội dung attachment dạng base64.
    * Jira PNJ dùng URL web /secure/attachment/{id}/{filename}, nên ưu tiên cách này.
    */
@@ -639,6 +669,52 @@ ${result.issues.map(formatIssue).join("\n---\n")}`
       }
       return {
         content: [{ type: "text", text: lines.join("\n") }]
+      };
+    }
+  );
+  server.tool(
+    "jira_get_transitions",
+    "L\u1EA5y danh s\xE1ch c\xE1c transition (tr\u1EA1ng th\xE1i chuy\u1EC3n \u0111\u1ED5i) kh\u1EA3 d\u1EE5ng c\u1EE7a m\u1ED9t Jira issue (v\xED d\u1EE5: 'In Progress', 'Ready to test', 'Done Internal').",
+    {
+      issueKey: z.string().describe("M\xE3 issue Jira, v\xED d\u1EE5: PROJ-123")
+    },
+    async ({ issueKey }) => {
+      const transitions = await jira.getTransitions(issueKey);
+      if (transitions.length === 0) {
+        return {
+          content: [{ type: "text", text: `Issue ${issueKey} kh\xF4ng c\xF3 tr\u1EA1ng th\xE1i chuy\u1EC3n \u0111\u1ED5i kh\u1EA3 d\u1EE5ng n\xE0o.` }]
+        };
+      }
+      const lines = [
+        `\u{1F504} **${issueKey}** c\xF3 **${transitions.length}** tr\u1EA1ng th\xE1i chuy\u1EC3n \u0111\u1ED5i kh\u1EA3 d\u1EE5ng:
+`,
+        `| ID | T\xEAn Transition | Tr\u1EA1ng th\xE1i chuy\u1EC3n t\u1EDBi |`,
+        `|---|---|---|`
+      ];
+      for (const t of transitions) {
+        lines.push(`| **${t.id}** | ${t.name} | ${t.to?.name || "N/A"} |`);
+      }
+      return {
+        content: [{ type: "text", text: lines.join("\n") }]
+      };
+    }
+  );
+  server.tool(
+    "jira_transition_issue",
+    "Th\u1EF1c hi\u1EC7n thay \u0111\u1ED5i tr\u1EA1ng th\xE1i c\u1EE7a Jira issue b\u1EB1ng Transition ID.",
+    {
+      issueKey: z.string().describe("M\xE3 issue Jira, v\xED d\u1EE5: PROJ-123"),
+      transitionId: z.string().describe("ID c\u1EE7a transition c\u1EA7n th\u1EF1c hi\u1EC7n (l\u1EA5y t\u1EEB tool jira_get_transitions)")
+    },
+    async ({ issueKey, transitionId }) => {
+      await jira.transitionIssue(issueKey, transitionId);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `\u2705 \u0110\xE3 chuy\u1EC3n \u0111\u1ED5i tr\u1EA1ng th\xE1i th\xE0nh c\xF4ng cho issue **${issueKey}** v\u1EDBi Transition ID **${transitionId}**.`
+          }
+        ]
       };
     }
   );

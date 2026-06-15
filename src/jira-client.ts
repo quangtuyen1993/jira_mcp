@@ -289,6 +289,38 @@ export class JiraClient {
   }
 
   /**
+   * Lấy danh sách các transitions (trạng thái chuyển đổi) khả dụng của issue
+   */
+  async getTransitions(issueKey: string): Promise<any[]> {
+    try {
+      const response = await this.client.get(
+        `/rest/api/2/issue/${issueKey}/transitions`
+      );
+      return response.data?.transitions || [];
+    } catch (error: any) {
+      throw handleAxiosError(error, `Get transitions for issue ${issueKey}`);
+    }
+  }
+
+  /**
+   * Thực hiện chuyển đổi trạng thái (transition) của issue
+   */
+  async transitionIssue(issueKey: string, transitionId: string): Promise<void> {
+    try {
+      await this.client.post(
+        `/rest/api/2/issue/${issueKey}/transitions`,
+        {
+          transition: {
+            id: transitionId,
+          },
+        }
+      );
+    } catch (error: any) {
+      throw handleAxiosError(error, `Transition issue ${issueKey} with ID ${transitionId}`);
+    }
+  }
+
+  /**
    * Download nội dung attachment dạng base64.
    * Jira PNJ dùng URL web /secure/attachment/{id}/{filename}, nên ưu tiên cách này.
    */

@@ -217,6 +217,59 @@ async function main() {
     }
   );
 
+  // ─── Tool: Lấy các bước chuyển đổi trạng thái (transitions) ──────
+  server.tool(
+    "jira_get_transitions",
+    "Lấy danh sách các transition (trạng thái chuyển đổi) khả dụng của một Jira issue (ví dụ: 'In Progress', 'Ready to test', 'Done Internal').",
+    {
+      issueKey: z.string().describe("Mã issue Jira, ví dụ: PROJ-123"),
+    },
+    async ({ issueKey }) => {
+      const transitions = await jira.getTransitions(issueKey);
+
+      if (transitions.length === 0) {
+        return {
+          content: [{ type: "text" as const, text: `Issue ${issueKey} không có trạng thái chuyển đổi khả dụng nào.` }],
+        };
+      }
+
+      const lines: string[] = [
+        `🔄 **${issueKey}** có **${transitions.length}** trạng thái chuyển đổi khả dụng:\n`,
+        `| ID | Tên Transition | Trạng thái chuyển tới |`,
+        `|---|---|---|`,
+      ];
+
+      for (const t of transitions) {
+        lines.push(`| **${t.id}** | ${t.name} | ${t.to?.name || "N/A"} |`);
+      }
+
+      return {
+        content: [{ type: "text" as const, text: lines.join("\n") }],
+      };
+    }
+  );
+
+  // ─── Tool: Thực hiện chuyển đổi trạng thái (transition) ──────────
+  server.tool(
+    "jira_transition_issue",
+    "Thực hiện thay đổi trạng thái của Jira issue bằng Transition ID.",
+    {
+      issueKey: z.string().describe("Mã issue Jira, ví dụ: PROJ-123"),
+      transitionId: z.string().describe("ID của transition cần thực hiện (lấy từ tool jira_get_transitions)"),
+    },
+    async ({ issueKey, transitionId }) => {
+      await jira.transitionIssue(issueKey, transitionId);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Đã chuyển đổi trạng thái thành công cho issue **${issueKey}** với Transition ID **${transitionId}**.`,
+          },
+        ],
+      };
+    }
+  );
+
   // ─── Tool: Phân tích tổng hợp task (issue + comment + ảnh) ──────
   server.tool(
     "jira_analyze_task",

@@ -8,16 +8,18 @@ Hỗ trợ **VS Code Copilot**, **Claude Desktop** và mọi MCP client.
 
 ## 🛠️ Tools
 
-| Tool | Mô tả |
-|---|---|
-| `jira_get_issue` | Lấy chi tiết 1 issue theo key (vd: `PROJ-123`) |
-| `jira_search` | Tìm kiếm issue bằng JQL |
-| `jira_my_tasks` | Lấy danh sách issue đang assign cho bạn |
-| `jira_project_issues` | Lấy danh sách issue trong 1 project |
-| `jira_get_attachments` | Lấy danh sách file đính kèm (link download & preview ảnh) |
-| `jira_get_comments` | Lấy danh sách comment của issue |
-| `jira_analyze_task` | Phân tích tổng hợp task (description + comments + tự động cache ảnh) |
-| `jira_cache_task` | Lưu tất cả attachments của issue về thư mục cache local |
+| Tool | Tham số | Mô tả |
+|---|---|---|
+| `jira_get_issue` | `issueKey` (string) | Lấy chi tiết 1 issue theo key (vd: `PROJ-123`). |
+| `jira_search` | `jql` (string), `maxResults` (number, optional) | Tìm kiếm issue bằng JQL. |
+| `jira_my_tasks` | `maxResults` (number, optional) | Lấy danh sách issue đang assign cho bạn và chưa resolved. |
+| `jira_project_issues` | `projectKey` (string), `maxResults` (number, optional) | Lấy danh sách issue trong 1 project. |
+| `jira_get_attachments` | `issueKey` (string), `downloadImages` (boolean, optional) | Lấy danh sách file đính kèm (có thể download hoặc preview). |
+| `jira_get_comments` | `issueKey` (string), `maxResults` (number, optional) | Lấy danh sách comment của issue. |
+| `jira_get_transitions` | `issueKey` (string) | Lấy danh sách các transition (thay đổi trạng thái) khả dụng của issue. |
+| `jira_transition_issue` | `issueKey` (string), `transitionId` (string) | Thực hiện thay đổi trạng thái của Jira issue theo Transition ID. |
+| `jira_analyze_task` | `issueKey` (string), `includeComments` (boolean, optional), `includeImages` (boolean, optional) | Phân tích tổng hợp task (description + comments + tự động cache ảnh). |
+| `jira_cache_task` | `issueKey` (string) | Lưu toàn bộ attachments và metadata của issue về thư mục cache local. |
 
 ## 📦 Cài đặt
 
