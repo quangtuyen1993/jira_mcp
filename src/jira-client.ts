@@ -11,6 +11,19 @@ export interface JiraConfig {
   loginEndpoint: string;
 }
 
+export interface JiraIssueLink {
+  key: string;
+  summary: string;
+  relationship: string;
+  status: string;
+}
+
+export interface JiraSubtask {
+  key: string;
+  summary: string;
+  status: string;
+}
+
 export interface JiraIssue {
   key: string;
   summary: string;
@@ -23,6 +36,15 @@ export interface JiraIssue {
   description?: string;
   project: string;
   url: string;
+  issueLinks?: JiraIssueLink[];
+  subtasks?: JiraSubtask[];
+  parent?: string;
+}
+
+export interface CacheOptions {
+  onlyImages?: boolean;
+  maxFiles?: number;
+  maxSize?: number; // in bytes
 }
 
 export interface JiraAttachment {
@@ -136,8 +158,17 @@ export class JiraClient {
    * Lấy chi tiết một issue theo key (vd: PROJ-123)
    */
   async getIssue(issueKey: string): Promise<JiraIssue> {
-    const response = await this.client.get(`/rest/api/2/issue/${issueKey}`);
-    return this.mapIssue(response.data);
+    try {
+      const response = await this.client.get(`/rest/api/2/issue/${issueKey}`);
+      const issue = this.mapIssue(response.data);
+      
+      // Tự động kiểm tra và cập nhật cache local khi fetch
+      await this.autoCacheIssue(issue);
+      
+      return issue;
+    } catch (error: any) {
+      throw handleAxiosError(error, `Get issue ${issueKey}`);
+    }
   }
 
   /**
@@ -147,26 +178,33 @@ export class JiraClient {
     jql: string,
     maxResults: number = 20
   ): Promise<JiraSearchResult> {
-    const response = await this.client.post("/rest/api/2/search", {
-      jql,
-      maxResults,
-      fields: [
-        "summary",
-        "status",
-        "assignee",
-        "priority",
-        "issuetype",
-        "created",
-        "updated",
-        "description",
-        "project",
-      ],
-    });
+    try {
+      const response = await this.client.post("/rest/api/2/search", {
+        jql,
+        maxResults,
+        fields: [
+          "summary",
+          "status",
+          "assignee",
+          "priority",
+          "issuetype",
+          "created",
+          "updated",
+          "description",
+          "project",
+          "issuelinks",
+          "subtasks",
+          "parent",
+        ],
+      });
 
-    return {
-      total: response.data.total,
-      issues: response.data.issues.map((i: any) => this.mapIssue(i)),
-    };
+      return {
+        total: response.data.total,
+        issues: response.data.issues.map((i: any) => this.mapIssue(i)),
+      };
+    } catch (error: any) {
+      throw handleAxiosError(error, `JQL search "${jql}"`);
+    }
   }
 
   /**
@@ -196,46 +234,58 @@ export class JiraClient {
    * Kiểm tra kết nối – lấy thông tin user hiện tại
    */
   async whoami(): Promise<string> {
-    const response = await this.client.get("/rest/api/2/myself");
-    return `${response.data.displayName} (${response.data.emailAddress || response.data.name})`;
+    try {
+      const response = await this.client.get("/rest/api/2/myself");
+      return `${response.data.displayName} (${response.data.emailAddress || response.data.name})`;
+    } catch (error: any) {
+      throw handleAxiosError(error, "Whoami check");
+    }
   }
 
   /**
    * Lấy danh sách file đính kèm của một issue
    */
   async getAttachments(issueKey: string): Promise<JiraAttachment[]> {
-    const response = await this.client.get(
-      `/rest/api/2/issue/${issueKey}?fields=attachment`
-    );
-    const attachments = response.data?.fields?.attachment || [];
-    return attachments.map((att: any) => ({
-      id: att.id,
-      filename: att.filename,
-      size: att.size,
-      mimeType: att.mimeType || "",
-      created: att.created || "",
-      author: att.author?.displayName || "Unknown",
-      downloadUrl: att.content || `${this.config.baseUrl}/secure/attachment/${att.id}/${att.filename}`,
-      thumbnailUrl: att.thumbnail || undefined,
-    }));
+    try {
+      const response = await this.client.get(
+        `/rest/api/2/issue/${issueKey}?fields=attachment`
+      );
+      const attachments = response.data?.fields?.attachment || [];
+      return attachments.map((att: any) => ({
+        id: att.id,
+        filename: att.filename,
+        size: att.size,
+        mimeType: att.mimeType || "",
+        created: att.created || "",
+        author: att.author?.displayName || "Unknown",
+        downloadUrl: att.content || `${this.config.baseUrl}/secure/attachment/${att.id}/${att.filename}`,
+        thumbnailUrl: att.thumbnail || undefined,
+      }));
+    } catch (error: any) {
+      throw handleAxiosError(error, `Get attachments for issue ${issueKey}`);
+    }
   }
 
   /**
    * Lấy danh sách comment của một issue
    */
   async getComments(issueKey: string, maxResults: number = 50): Promise<JiraComment[]> {
-    const response = await this.client.get(
-      `/rest/api/2/issue/${issueKey}/comment`,
-      { params: { maxResults } }
-    );
-    const comments = response.data?.comments || [];
-    return comments.map((c: any) => ({
-      id: c.id,
-      body: c.body || "",
-      author: c.author?.displayName || "Unknown",
-      created: c.created || "",
-      updated: c.updated || "",
-    }));
+    try {
+      const response = await this.client.get(
+        `/rest/api/2/issue/${issueKey}/comment`,
+        { params: { maxResults } }
+      );
+      const comments = response.data?.comments || [];
+      return comments.map((c: any) => ({
+        id: c.id,
+        body: c.body || "",
+        author: c.author?.displayName || "Unknown",
+        created: c.created || "",
+        updated: c.updated || "",
+      }));
+    } catch (error: any) {
+      throw handleAxiosError(error, `Get comments for issue ${issueKey}`);
+    }
   }
 
   /**
@@ -277,19 +327,41 @@ export class JiraClient {
     return path.join(os.homedir(), ".pnj-task", issueKey);
   }
 
-  async downloadAttachmentsToCache(issueKey: string): Promise<{ saved: string[]; errors: string[] }> {
+  async downloadAttachmentsToCache(
+    issueKey: string,
+    options?: CacheOptions
+  ): Promise<{ saved: string[]; errors: string[] }> {
     const atts = await this.getAttachments(issueKey);
     const cacheDir = this.getCacheDir(issueKey);
     fs.mkdirSync(cacheDir, { recursive: true });
 
     const saved: string[] = [];
     const errors: string[] = [];
+    
+    const imageTypes = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml", "image/bmp"];
 
-    for (const att of atts) {
+    let filteredAtts = atts;
+
+    // Apply onlyImages filter
+    if (options?.onlyImages) {
+      filteredAtts = filteredAtts.filter(att => imageTypes.includes(att.mimeType));
+    }
+
+    // Apply maxSize filter
+    if (options?.maxSize) {
+      filteredAtts = filteredAtts.filter(att => att.size <= options.maxSize!);
+    }
+
+    // Apply maxFiles filter
+    if (options?.maxFiles) {
+      filteredAtts = filteredAtts.slice(0, options.maxFiles);
+    }
+
+    for (const att of filteredAtts) {
       const filePath = path.join(cacheDir, att.filename);
       try {
         console.error(`[JiraClient] Saving ${att.filename} to ${filePath}...`);
-        const { contentType, base64 } = await this.downloadAttachment(att.id, att.downloadUrl);
+        const { base64 } = await this.downloadAttachment(att.id, att.downloadUrl);
         const buffer = Buffer.from(base64, "base64");
         fs.writeFileSync(filePath, buffer);
         saved.push(filePath);
@@ -303,11 +375,191 @@ export class JiraClient {
     return { saved, errors };
   }
 
+  async writeTaskMetadataToCache(
+    issue: JiraIssue,
+    comments: JiraComment[],
+    cacheDir: string
+  ): Promise<void> {
+    const filePath = path.join(cacheDir, "task_info.md");
+    console.error(`[JiraClient] Writing task metadata to ${filePath}...`);
+
+    const markdown: string[] = [
+      `# [${issue.key}] ${issue.summary}`,
+      ``,
+      `| Thuộc tính | Giá trị |`,
+      `|---|---|`,
+      `| **Trạng thái (Status)** | ${issue.status} |`,
+      `| **Người được giao (Assignee)** | ${issue.assignee || "Chưa giao (Unassigned)"} |`,
+      `| **Mức độ ưu tiên (Priority)** | ${issue.priority} |`,
+      `| **Loại yêu cầu (Type)** | ${issue.issueType} |`,
+      `| **Dự án (Project)** | ${issue.project} |`,
+      `| **Ngày tạo (Created)** | ${issue.created} |`,
+      `| **Cập nhật (Updated)** | ${issue.updated} |`,
+      `| **Đường dẫn gốc (Jira Link)** | [Browse Issue](${issue.url}) |`,
+      ``,
+    ];
+
+    if (issue.parent) {
+      markdown.push(`- 🔺 **Task cha (Parent)**: [${issue.parent}](../${issue.parent}/task_info.md)`);
+    }
+
+    if (issue.subtasks && issue.subtasks.length > 0) {
+      markdown.push(`## 🔽 Task con (Subtasks)`);
+      issue.subtasks.forEach(st => {
+        markdown.push(`- [${st.key}](../${st.key}/task_info.md) - ${st.summary} (*${st.status}*)`);
+      });
+      markdown.push(``);
+    }
+
+    if (issue.issueLinks && issue.issueLinks.length > 0) {
+      markdown.push(`## 🔗 Task liên quan (Relationships)`);
+      issue.issueLinks.forEach(link => {
+        markdown.push(`- **${link.relationship}**: [${link.key}](../${link.key}/task_info.md) - ${link.summary} (*${link.status}*)`);
+      });
+      markdown.push(``);
+    }
+
+    if (issue.description) {
+      markdown.push(`## 📝 Mô tả chi tiết (Description)`);
+      markdown.push(issue.description);
+      markdown.push(``);
+    }
+
+    if (comments.length > 0) {
+      markdown.push(`## 💬 Bình luận (Comments - ${comments.length})`);
+      comments.forEach((c, index) => {
+        markdown.push(`### ${index + 1}. ${c.author} — ${c.created}`);
+        markdown.push(c.body);
+        markdown.push(``);
+      });
+    }
+
+    fs.writeFileSync(filePath, markdown.join("\n"), "utf-8");
+
+    // Ghi JSON metadata để check cập nhật sau này
+    const jsonPath = path.join(cacheDir, "task_info.json");
+    fs.writeFileSync(
+      jsonPath,
+      JSON.stringify({ key: issue.key, updated: issue.updated }, null, 2),
+      "utf-8"
+    );
+  }
+
+  isCacheUpToDate(issueKey: string, updatedTime: string): boolean {
+    const jsonPath = path.join(this.getCacheDir(issueKey), "task_info.json");
+    if (!fs.existsSync(jsonPath)) {
+      return false;
+    }
+    try {
+      const content = fs.readFileSync(jsonPath, "utf-8");
+      const metadata = JSON.parse(content);
+      return metadata.updated === updatedTime;
+    } catch {
+      return false;
+    }
+  }
+
+  async autoCacheIssue(issue: JiraIssue): Promise<void> {
+    const cacheDir = this.getCacheDir(issue.key);
+    
+    // Nếu cache local đã trùng với thời gian cập nhật trên Jira, bỏ qua không tải lại
+    if (this.isCacheUpToDate(issue.key, issue.updated)) {
+      console.error(`[JiraClient] Local cache for ${issue.key} is already up to date.`);
+      return;
+    }
+
+    console.error(`[JiraClient] Cache for ${issue.key} is outdated or missing. Auto-caching in progress...`);
+    try {
+      // 1. Lấy danh sách bình luận (lấy tối đa 100)
+      const comments = await this.getComments(issue.key, 100);
+      
+      // 2. Tải toàn bộ attachments (hình ảnh và file đính kèm)
+      await this.downloadAttachmentsToCache(issue.key);
+      
+      // 3. Ghi thông tin metadata và comments
+      await this.writeTaskMetadataToCache(issue, comments, cacheDir);
+      
+      // 4. Cập nhật master index
+      await this.updateMasterIndex(issue);
+      
+      console.error(`[JiraClient] Auto-cached ${issue.key} successfully.`);
+    } catch (err: any) {
+      console.error(`[JiraClient] Auto-caching failed for ${issue.key}: ${err.message}`);
+    }
+  }
+
+  async updateMasterIndex(issue: JiraIssue): Promise<void> {
+    const baseDir = path.join(os.homedir(), ".pnj-task");
+    fs.mkdirSync(baseDir, { recursive: true });
+    const indexPath = path.join(baseDir, "index.md");
+
+    console.error(`[JiraClient] Updating master index at ${indexPath}...`);
+
+    let existingContent = "";
+    if (fs.existsSync(indexPath)) {
+      existingContent = fs.readFileSync(indexPath, "utf-8");
+    } else {
+      existingContent = `# 📂 Danh sách Jira Task Cache Local\n\n| Task | Tóm tắt | Trạng thái | Cập nhật | Chi tiết offline |\n|---|---|---|---|---|\n`;
+    }
+
+    const lines = existingContent.split("\n");
+    const taskRowPattern = new RegExp(`^\\|\\s*\\[?${issue.key}\\]?`);
+
+    const newRow = `| [${issue.key}](${issue.url}) | ${issue.summary} | ${issue.status} | ${issue.updated} | [Xem offline](./${issue.key}/task_info.md) |`;
+
+    let foundIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (taskRowPattern.test(lines[i])) {
+        foundIndex = i;
+        break;
+      }
+    }
+
+    if (foundIndex !== -1) {
+      lines[foundIndex] = newRow;
+    } else {
+      let insertIndex = lines.length;
+      for (let i = lines.length - 1; i >= 0; i--) {
+        if (lines[i].startsWith("|")) {
+          insertIndex = i + 1;
+          break;
+        }
+      }
+      lines.splice(insertIndex, 0, newRow);
+    }
+
+    fs.writeFileSync(indexPath, lines.join("\n"), "utf-8");
+  }
+
   /**
    * Map raw API response → JiraIssue
    */
   private mapIssue(data: any): JiraIssue {
     const fields = data.fields || data;
+    
+    // Parse subtasks
+    const subtasks = fields.subtasks?.map((st: any) => ({
+      key: st.key,
+      summary: st.fields?.summary || "",
+      status: st.fields?.status?.name || "",
+    })) || [];
+
+    // Parse parent
+    const parent = fields.parent?.key;
+
+    // Parse issueLinks
+    const issueLinks = (fields.issuelinks || []).map((link: any) => {
+      const isOutward = !!link.outwardIssue;
+      const linkedIssue = link.outwardIssue || link.inwardIssue;
+      const relationship = isOutward ? link.type?.outward || link.type?.name : link.type?.inward || link.type?.name;
+      return {
+        key: linkedIssue?.key || "",
+        summary: linkedIssue?.fields?.summary || "",
+        relationship: relationship || "",
+        status: linkedIssue?.fields?.status?.name || "",
+      };
+    }).filter((link: any) => !!link.key);
+
     return {
       key: data.key || fields.key,
       summary: fields.summary || "",
@@ -324,6 +576,32 @@ export class JiraClient {
         : undefined,
       project: fields.project?.key || "",
       url: `${this.config.baseUrl}/browse/${data.key || fields.key}`,
+      issueLinks,
+      subtasks,
+      parent,
     };
   }
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────
+function handleAxiosError(error: any, action: string): Error {
+  if (error.response) {
+    const data = error.response.data;
+    let details = "";
+    if (data) {
+      if (Array.isArray(data.errorMessages) && data.errorMessages.length > 0) {
+        details = data.errorMessages.join(", ");
+      } else if (data.errors && typeof data.errors === "object") {
+        details = Object.entries(data.errors)
+          .map(([key, val]) => `${key}: ${val}`)
+          .join("; ");
+      } else if (typeof data === "string") {
+        details = data;
+      } else {
+        details = JSON.stringify(data);
+      }
+    }
+    return new Error(`${action} failed (${error.response.status}): ${details || error.message}`);
+  }
+  return new Error(`${action} failed: ${error.message}`);
 }

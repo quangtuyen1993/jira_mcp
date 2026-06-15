@@ -2,6 +2,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { JiraClient, JiraConfig } from "./jira-client.js";
+import * as fs from "fs";
+import * as path from "path";
 
 // ─── Cấu hình từ biến môi trường ───────────────────────────────────
 function loadConfig(): JiraConfig {
@@ -223,11 +225,12 @@ async function main() {
       issueKey: z.string().describe("Mã issue Jira, ví dụ: PROJ-123"),
       includeComments: z.boolean().optional().default(true).describe("Có lấy comment không (mặc định: true)"),
       includeImages: z.boolean().optional().default(true).describe("Có tải ảnh về để đọc text không (mặc định: true)"),
-      maxComments: z.number().optional().default(10).describe("Số comment tối đa"),
-      maxImages: z.number().optional().default(5).describe("Số ảnh tối đa (chỉ ảnh < 5MB)"),
     },
-    async ({ issueKey, includeComments, includeImages, maxComments, maxImages }) => {
+    async ({ issueKey, includeComments, includeImages }) => {
+      // getIssue tự động kiểm tra metadata và cache mọi thông tin offline
       const issue = await jira.getIssue(issueKey);
+      const cacheDir = jira.getCacheDir(issueKey);
+      
       const parts: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [];
 
       // ── Phần 1: Thông tin issue ──────────────────────────────
@@ -256,7 +259,7 @@ async function main() {
 
       // ── Phần 2: Comments ────────────────────────────────────
       if (includeComments) {
-        const comments = await jira.getComments(issueKey, maxComments);
+        const comments = await jira.getComments(issueKey, 100);
         if (comments.length > 0) {
           const cmtLines: string[] = [`## 💬 Comments (${comments.length})`, ``];
           for (let i = 0; i < comments.length; i++) {
@@ -270,14 +273,21 @@ async function main() {
         }
       }
 
-      // ── Phần 3: Ảnh đính kèm ─ tự động cache về local ─────
+      // ── Phần 3: Ảnh đính kèm ─ đọc trực tiếp từ local folder ─────
       if (includeImages) {
-        const { saved, errors } = await jira.downloadAttachmentsToCache(issueKey);
+        let saved: string[] = [];
+        if (fs.existsSync(cacheDir)) {
+          const files = fs.readdirSync(cacheDir);
+          const imageExtensions = [".png", ".jpeg", ".jpg", ".gif", ".webp", ".svg", ".bmp"];
+          saved = files
+            .filter(f => imageExtensions.includes(path.extname(f).toLowerCase()))
+            .map(f => path.join(cacheDir, f));
+        }
 
         if (saved.length > 0) {
           parts.push({
             type: "text",
-            text: `## 🖼️ Ảnh đính kèm (đã cache về local)\n📁 \`${jira.getCacheDir(issueKey)}\`\n`,
+            text: `## 🖼️ Ảnh đính kèm (đã cache về local)\n📁 \`${cacheDir}\`\n`,
           });
           saved.forEach(f => {
             parts.push({
@@ -285,9 +295,6 @@ async function main() {
               text: `- 📸 \`${f}\` → **Hãy dùng tool read_file để đọc ảnh này và trích xuất text bằng Vision**`,
             });
           });
-        }
-        if (errors.length > 0) {
-          parts.push({ type: "text", text: `\n⚠️ Lỗi: ${errors.join(", ")}` });
         }
       }
 
@@ -310,22 +317,25 @@ async function main() {
     },
     async ({ issueKey }) => {
       const cacheDir = jira.getCacheDir(issueKey);
-      const { saved, errors } = await jira.downloadAttachmentsToCache(issueKey);
+      
+      // getIssue sẽ tự động kiểm tra và cache toàn bộ thông tin mới nhất
+      await jira.getIssue(issueKey);
 
       const lines: string[] = [
         `📥 **Cache task ${issueKey}** → \`${cacheDir}\`\n`,
+        `✅ Đã lưu thông tin chi tiết vào \`task_info.md\``,
+        `✅ Đã cập nhật chỉ mục tổng hợp tại \`~/.pnj-task/index.md\``,
       ];
 
-      if (saved.length > 0) {
-        lines.push(`✅ Đã lưu **${saved.length}** file:`);
-        saved.forEach(f => lines.push(`   - \`${f}\``));
-      }
-      if (errors.length > 0) {
-        lines.push(`\n⚠️ Lỗi **${errors.length}** file:`);
-        errors.forEach(e => lines.push(`   - ${e}`));
+      if (fs.existsSync(cacheDir)) {
+        const files = fs.readdirSync(cacheDir).filter(f => f !== "task_info.json" && f !== "task_info.md");
+        if (files.length > 0) {
+          lines.push(`✅ Đã lưu **${files.length}** file đính kèm:`);
+          files.forEach(f => lines.push(`   - \`${path.join(cacheDir, f)}\``));
+        }
       }
 
-      lines.push(`\n💡 Copilot có thể đọc các file này bằng cách mở trực tiếp đường dẫn.`);
+      lines.push(`\n💡 Bạn hoặc Agent có thể đọc các file này offline bằng cách mở trực tiếp đường dẫn.`);
 
       return { content: [{ type: "text" as const, text: lines.join("\n") }] };
     }
@@ -338,19 +348,7 @@ async function main() {
 }
 
 // ─── Format helper ─────────────────────────────────────────────────
-function formatIssue(issue: {
-  key: string;
-  summary: string;
-  status: string;
-  assignee: string | null;
-  priority: string;
-  issueType: string;
-  created: string;
-  updated: string;
-  description?: string;
-  project: string;
-  url: string;
-}): string {
+function formatIssue(issue: any): string {
   const lines = [
     `**[${issue.key}]** ${issue.summary}`,
     `- Status: ${issue.status} | Priority: ${issue.priority} | Type: ${issue.issueType}`,
@@ -358,6 +356,21 @@ function formatIssue(issue: {
     `- Created: ${issue.created} | Updated: ${issue.updated}`,
     `- Link: ${issue.url}`,
   ];
+
+  if (issue.parent) {
+    lines.push(`- Parent Task: ${issue.parent}`);
+  }
+
+  if (issue.subtasks && issue.subtasks.length > 0) {
+    const subtaskKeys = issue.subtasks.map((st: any) => `${st.key} (${st.status})`).join(", ");
+    lines.push(`- Subtasks: ${subtaskKeys}`);
+  }
+
+  if (issue.issueLinks && issue.issueLinks.length > 0) {
+    const linkKeys = issue.issueLinks.map((l: any) => `[${l.relationship}] ${l.key} (${l.status})`).join(", ");
+    lines.push(`- Related Issues: ${linkKeys}`);
+  }
+
   if (issue.description) {
     const desc =
       issue.description.length > 300

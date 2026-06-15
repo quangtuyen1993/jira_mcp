@@ -29,10 +29,7 @@ await esbuild.build({
   banner: {
     js: "#!/usr/bin/env node",
   },
-  external: [
-    // Không bundle dotenv – user cần tự cài nếu dùng file .env
-    // (có thể bỏ qua vì MCP host sẽ inject env vars)
-  ],
+  packages: "external",
   minify: false,
   sourcemap: false,
   treeShaking: true,
