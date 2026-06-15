@@ -71,6 +71,15 @@ export interface JiraSearchResult {
   issues: JiraIssue[];
 }
 
+export interface CreateIssuePayload {
+  projectKey: string;
+  summary: string;
+  issueType: string;
+  description?: string;
+  priority?: string;
+  assignee?: string;
+}
+
 /**
  * Jira API Client – hỗ trợ cả Basic Auth và Session-based Auth
  */
@@ -142,7 +151,7 @@ export class JiraClient {
           } else {
             throw new Error(
               "Could not obtain session cookie. Response: " +
-                JSON.stringify(response.data).substring(0, 200)
+              JSON.stringify(response.data).substring(0, 200)
             );
           }
         }
@@ -168,6 +177,46 @@ export class JiraClient {
       return issue;
     } catch (error: any) {
       throw handleAxiosError(error, `Get issue ${issueKey}`);
+    }
+  }
+
+  /**
+   * Tạo 1 hoặc nhiều issue mới. Sử dụng API Bulk nếu có nhiều hơn 1 issue.
+   */
+  async createIssues(payloads: CreateIssuePayload[]): Promise<string[]> {
+    if (payloads.length === 0) return [];
+
+    const formatIssueUpdate = (p: CreateIssuePayload) => {
+      const fields: any = {
+        project: { key: p.projectKey },
+        summary: p.summary,
+        issuetype: { name: p.issueType },
+      };
+      if (p.description) fields.description = p.description;
+      if (p.priority) fields.priority = { name: p.priority };
+      if (p.assignee) fields.assignee = { name: p.assignee }; // Hoặc accountId tuỳ phiên bản Jira
+      return { fields };
+    };
+
+    if (payloads.length === 1) {
+      // API tạo 1 issue
+      const response = await this.client.post("/rest/api/2/issue", formatIssueUpdate(payloads[0]));
+      return [response.data.key];
+    } else {
+      // API tạo nhiều issue (bulk)
+      try {
+        const issueUpdates = payloads.map(formatIssueUpdate);
+        const response = await this.client.post("/rest/api/2/issue/bulk", { issueUpdates });
+        return response.data.issues.map((i: any) => i.key);
+      } catch (err: any) {
+        console.error("[JiraClient] Bulk create failed, falling back to sequential creation:", err.message);
+        const keys: string[] = [];
+        for (const p of payloads) {
+          const response = await this.client.post("/rest/api/2/issue", formatIssueUpdate(p));
+          keys.push(response.data.key);
+        }
+        return keys;
+      }
     }
   }
 

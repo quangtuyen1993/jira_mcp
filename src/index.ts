@@ -48,6 +48,47 @@ async function main() {
     description: "MCP server to fetch tasks/issues from Jira. Supports JQL search, get issue details, my tasks, and project issues.",
   });
 
+  // ─── Tool: Tạo 1 hoặc nhiều issue ───────────────────────────────
+  server.tool(
+    "jira_create_issues",
+    "Tạo một hoặc nhiều Jira task/issue mới dựa trên cấu hình đầu vào. Trả về danh sách các issue key vừa được tạo.",
+    {
+      issues: z.array(
+        z.object({
+          projectKey: z.string().describe("Mã project, ví dụ: PROJ"),
+          summary: z.string().describe("Tiêu đề của task"),
+          issueType: z.string().describe("Loại issue, ví dụ: Task, Bug, Story"),
+          description: z.string().optional().describe("Mô tả chi tiết task"),
+          priority: z.string().optional().describe("Độ ưu tiên, ví dụ: High, Medium, Low"),
+          assignee: z.string().optional().describe("Username người được gán task")
+        })
+      ).describe("Danh sách các cấu hình issue cần tạo")
+    },
+    async ({ issues }) => {
+      try {
+        const keys = await jira.createIssues(issues);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `✅ Đã tạo thành công ${keys.length} issue:\n${keys.map(k => `- ${k}`).join("\n")}`
+            }
+          ]
+        };
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `❌ Lỗi khi tạo issue:\n${error.message || error}`
+            }
+          ],
+          isError: true
+        };
+      }
+    }
+  );
+
   // ─── Tool: Lấy chi tiết 1 issue ─────────────────────────────────
   server.tool(
     "jira_get_issue",
