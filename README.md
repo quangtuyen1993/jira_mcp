@@ -14,6 +14,10 @@ Hỗ trợ **VS Code Copilot**, **Claude Desktop** và mọi MCP client.
 | `jira_search` | Tìm kiếm issue bằng JQL |
 | `jira_my_tasks` | Lấy danh sách issue đang assign cho bạn |
 | `jira_project_issues` | Lấy danh sách issue trong 1 project |
+| `jira_get_attachments` | Lấy danh sách file đính kèm (link download & preview ảnh) |
+| `jira_get_comments` | Lấy danh sách comment của issue |
+| `jira_analyze_task` | Phân tích tổng hợp task (description + comments + tự động cache ảnh) |
+| `jira_cache_task` | Lưu tất cả attachments của issue về thư mục cache local |
 
 ## 📦 Cài đặt
 
@@ -116,6 +120,38 @@ Thêm vào `claude_desktop_config.json`:
 ```
 
 > ⚠️ Claude Desktop dùng `"mcpServers"` (khác với VS Code).
+
+## 🔌 Kết nối Antigravity (Gemini IDE)
+
+Để kết nối với Antigravity, thêm cấu hình của server vào cài đặt MCP của bạn:
+
+```json
+{
+  "mcpServers": {
+    "pnj-jira": {
+      "command": "node",
+      "args": ["/đường/dẫn/đến/jira_mcp/build/index.js"],
+      "env": {
+        "JIRA_BASE_URL": "https://jira.pnj.com.vn",
+        "JIRA_AUTH_TYPE": "basic",
+        "JIRA_USERNAME": "your-username",
+        "JIRA_PASSWORD": "your-password"
+      }
+    }
+  }
+}
+```
+
+## 🤖 Hướng dẫn tích hợp cho Agentic AI (như Antigravity)
+
+MCP server này cung cấp các tool chuyên dụng để hỗ trợ Agent tự động phân tích và giải quyết công việc ngoại tuyến:
+
+1. **Phân tích tổng hợp với `jira_analyze_task`**:
+   Agent chạy tool này để lấy thông tin chi tiết, comment và tự động tải các file/hình ảnh đính kèm về thư mục local cache (`~/.pnj-task/{issueKey}/`).
+2. **Đọc hình ảnh ngoại tuyến**:
+   Sau khi ảnh được tải về local, Agent có thể sử dụng tool `view_file` (hoặc chức năng đọc ảnh của model) để phân tích giao diện, text trong hình ảnh mà không cần gọi API tải trực tiếp qua mạng nhiều lần.
+3. **Giải quyết task dựa trên ngữ cảnh**:
+   Agent kết hợp thông tin văn bản từ Jira và hình ảnh thiết kế để hiểu toàn bộ bối cảnh dự án và tự động thực hiện các thay đổi code cần thiết.
 
 ## 📋 Ví dụ sử dụng
 

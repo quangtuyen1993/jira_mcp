@@ -3231,8 +3231,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path) {
-      let input = path;
+    function removeDotSegments(path2) {
+      let input = path2;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -3484,8 +3484,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path && path !== "/" ? path : void 0;
+        const [path2, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path2 && path2 !== "/" ? path2 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6878,12 +6878,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs, exportName) {
+    function addFormats(ajv, list, fs2, exportName) {
       var _a3;
       var _b;
       (_a3 = (_b = ajv.opts.code).formats) !== null && _a3 !== void 0 ? _a3 : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs[f]);
+        ajv.addFormat(f, fs2[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -15738,11 +15738,11 @@ var require_mime_types = __commonJS({
       }
       return exts[0];
     }
-    function lookup(path) {
-      if (!path || typeof path !== "string") {
+    function lookup(path2) {
+      if (!path2 || typeof path2 !== "string") {
         return false;
       }
-      var extension2 = extname("x." + path).toLowerCase().substr(1);
+      var extension2 = extname("x." + path2).toLowerCase().substr(1);
       if (!extension2) {
         return false;
       }
@@ -16847,11 +16847,11 @@ var require_form_data = __commonJS({
     "use strict";
     var CombinedStream = require_combined_stream();
     var util5 = __require("util");
-    var path = __require("path");
+    var path2 = __require("path");
     var http3 = __require("http");
     var https2 = __require("https");
     var parseUrl2 = __require("url").parse;
-    var fs = __require("fs");
+    var fs2 = __require("fs");
     var Stream = __require("stream").Stream;
     var crypto2 = __require("crypto");
     var mime = require_mime_types();
@@ -16918,7 +16918,7 @@ var require_form_data = __commonJS({
         if (value.end != void 0 && value.end != Infinity && value.start != void 0) {
           callback(null, value.end + 1 - (value.start ? value.start : 0));
         } else {
-          fs.stat(value.path, function(err, stat) {
+          fs2.stat(value.path, function(err, stat) {
             if (err) {
               callback(err);
               return;
@@ -16975,11 +16975,11 @@ var require_form_data = __commonJS({
     FormData3.prototype._getContentDisposition = function(value, options) {
       var filename;
       if (typeof options.filepath === "string") {
-        filename = path.normalize(options.filepath).replace(/\\/g, "/");
+        filename = path2.normalize(options.filepath).replace(/\\/g, "/");
       } else if (options.filename || value && (value.name || value.path)) {
-        filename = path.basename(options.filename || value && (value.name || value.path));
+        filename = path2.basename(options.filename || value && (value.name || value.path));
       } else if (value && value.readable && hasOwn(value, "httpVersion")) {
-        filename = path.basename(value.client._httpMessage.path || "");
+        filename = path2.basename(value.client._httpMessage.path || "");
       }
       if (filename) {
         return 'filename="' + filename + '"';
@@ -19148,8 +19148,8 @@ function getErrorMap() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path, errorMaps, issueData } = params;
-  const fullPath = [...path, ...issueData.path || []];
+  const { data, path: path2, errorMaps, issueData } = params;
+  const fullPath = [...path2, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -19264,11 +19264,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path, key) {
+  constructor(parent, value, path2, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path;
+    this._path = path2;
     this._key = key;
   }
   get path() {
@@ -23188,10 +23188,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path) {
-  if (!path)
+function getElementAtPath(obj, path2) {
+  if (!path2)
     return obj;
-  return path.reduce((acc, key) => acc?.[key], obj);
+  return path2.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -23600,11 +23600,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path, issues) {
+function prefixIssues(path2, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path);
+    iss.path.unshift(path2);
     return iss;
   });
 }
@@ -23751,16 +23751,16 @@ function flattenError(error51, mapper = (issue2) => issue2.message) {
 }
 function formatError(error51, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error52, path = []) => {
+  const processError = (error52, path2 = []) => {
     for (const issue2 of error52.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path2, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
       } else {
-        const fullpath = [...path, ...issue2.path];
+        const fullpath = [...path2, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -23787,17 +23787,17 @@ function formatError(error51, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error51, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error52, path = []) => {
+  const processError = (error52, path2 = []) => {
     var _a3, _b;
     for (const issue2 of error52.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path2, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path2, ...issue2.path]);
       } else {
-        const fullpath = [...path, ...issue2.path];
+        const fullpath = [...path2, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -23829,8 +23829,8 @@ function treeifyError(error51, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path) {
+  const path2 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path2) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -36955,13 +36955,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path = ref.slice(1).split("/").filter(Boolean);
-  if (path.length === 0) {
+  const path2 = ref.slice(1).split("/").filter(Boolean);
+  if (path2.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path[0] === defsKey) {
-    const key = path[1];
+  if (path2[0] === defsKey) {
+    const key = path2[1];
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -43781,9 +43781,9 @@ function isVisitable(thing) {
 function removeBrackets(key) {
   return utils_default.endsWith(key, "[]") ? key.slice(0, -2) : key;
 }
-function renderKey(path, key, dots) {
-  if (!path) return key;
-  return path.concat(key).map(function each(token, i) {
+function renderKey(path2, key, dots) {
+  if (!path2) return key;
+  return path2.concat(key).map(function each(token, i) {
     token = removeBrackets(token);
     return !dots && i ? "[" + token + "]" : token;
   }).join(dots ? "." : "");
@@ -43837,13 +43837,13 @@ function toFormData(obj, formData, options) {
     }
     return value;
   }
-  function defaultVisitor(value, key, path) {
+  function defaultVisitor(value, key, path2) {
     let arr = value;
     if (utils_default.isReactNative(formData) && utils_default.isReactNativeBlob(value)) {
-      formData.append(renderKey(path, key, dots), convertValue(value));
+      formData.append(renderKey(path2, key, dots), convertValue(value));
       return false;
     }
-    if (value && !path && typeof value === "object") {
+    if (value && !path2 && typeof value === "object") {
       if (utils_default.endsWith(key, "{}")) {
         key = metaTokens ? key : key.slice(0, -2);
         value = JSON.stringify(value);
@@ -43862,7 +43862,7 @@ function toFormData(obj, formData, options) {
     if (isVisitable(value)) {
       return true;
     }
-    formData.append(renderKey(path, key, dots), convertValue(value));
+    formData.append(renderKey(path2, key, dots), convertValue(value));
     return false;
   }
   const stack = [];
@@ -43871,7 +43871,7 @@ function toFormData(obj, formData, options) {
     convertValue,
     isVisitable
   });
-  function build(value, path, depth = 0) {
+  function build(value, path2, depth = 0) {
     if (utils_default.isUndefined(value)) return;
     if (depth > maxDepth) {
       throw new AxiosError_default(
@@ -43880,13 +43880,13 @@ function toFormData(obj, formData, options) {
       );
     }
     if (stack.indexOf(value) !== -1) {
-      throw new Error("Circular reference detected in " + path.join("."));
+      throw new Error("Circular reference detected in " + path2.join("."));
     }
     stack.push(value);
     utils_default.forEach(value, function each(el, key) {
-      const result = !(utils_default.isUndefined(el) || el === null) && visitor.call(formData, el, utils_default.isString(key) ? key.trim() : key, path, exposedHelpers);
+      const result = !(utils_default.isUndefined(el) || el === null) && visitor.call(formData, el, utils_default.isString(key) ? key.trim() : key, path2, exposedHelpers);
       if (result === true) {
-        build(el, path ? path.concat(key) : [key], depth + 1);
+        build(el, path2 ? path2.concat(key) : [key], depth + 1);
       }
     });
     stack.pop();
@@ -44098,7 +44098,7 @@ var platform_default = {
 // node_modules/axios/lib/helpers/toURLEncodedForm.js
 function toURLEncodedForm(data, options) {
   return toFormData_default(data, new platform_default.classes.URLSearchParams(), {
-    visitor: function(value, key, path, helpers) {
+    visitor: function(value, key, path2, helpers) {
       if (platform_default.isNode && utils_default.isBuffer(value)) {
         this.append(key, value.toString("base64"));
         return false;
@@ -44128,11 +44128,11 @@ function arrayToObject(arr) {
   return obj;
 }
 function formDataToJSON(formData) {
-  function buildPath(path, value, target, index) {
-    let name = path[index++];
+  function buildPath(path2, value, target, index) {
+    let name = path2[index++];
     if (name === "__proto__") return true;
     const isNumericKey = Number.isFinite(+name);
-    const isLast = index >= path.length;
+    const isLast = index >= path2.length;
     name = !name && utils_default.isArray(target) ? target.length : name;
     if (isLast) {
       if (utils_default.hasOwnProp(target, name)) {
@@ -44145,7 +44145,7 @@ function formDataToJSON(formData) {
     if (!utils_default.hasOwnProp(target, name) || !utils_default.isObject(target[name])) {
       target[name] = [];
     }
-    const result = buildPath(path, value, target[name], index);
+    const result = buildPath(path2, value, target[name], index);
     if (result && utils_default.isArray(target[name])) {
       target[name] = arrayToObject(target[name]);
     }
@@ -45626,9 +45626,9 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config2) {
       auth = urlUsername + ":" + urlPassword;
     }
     auth && headers.delete("authorization");
-    let path;
+    let path2;
     try {
-      path = buildURL(
+      path2 = buildURL(
         parsed.pathname + parsed.search,
         config2.params,
         config2.paramsSerializer
@@ -45646,7 +45646,7 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config2) {
       false
     );
     const options = Object.assign(/* @__PURE__ */ Object.create(null), {
-      path,
+      path: path2,
       method,
       headers: toByteStringHeaderObject(headers),
       agents: { http: config2.httpAgent, https: config2.httpsAgent },
@@ -46010,14 +46010,14 @@ var isURLSameOrigin_default = platform_default.hasStandardBrowserEnv ? /* @__PUR
 var cookies_default = platform_default.hasStandardBrowserEnv ? (
   // Standard browser envs support document.cookie
   {
-    write(name, value, expires, path, domain2, secure, sameSite) {
+    write(name, value, expires, path2, domain2, secure, sameSite) {
       if (typeof document === "undefined") return;
       const cookie = [`${name}=${encodeURIComponent(value)}`];
       if (utils_default.isNumber(expires)) {
         cookie.push(`expires=${new Date(expires).toUTCString()}`);
       }
-      if (utils_default.isString(path)) {
-        cookie.push(`path=${path}`);
+      if (utils_default.isString(path2)) {
+        cookie.push(`path=${path2}`);
       }
       if (utils_default.isString(domain2)) {
         cookie.push(`domain=${domain2}`);
@@ -47478,6 +47478,9 @@ var {
 } = axios_default;
 
 // src/jira-client.ts
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 var JiraClient = class {
   client;
   config;
@@ -47602,6 +47605,98 @@ var JiraClient = class {
   async whoami() {
     const response = await this.client.get("/rest/api/2/myself");
     return `${response.data.displayName} (${response.data.emailAddress || response.data.name})`;
+  }
+  /**
+   * Lấy danh sách file đính kèm của một issue
+   */
+  async getAttachments(issueKey) {
+    const response = await this.client.get(
+      `/rest/api/2/issue/${issueKey}?fields=attachment`
+    );
+    const attachments = response.data?.fields?.attachment || [];
+    return attachments.map((att) => ({
+      id: att.id,
+      filename: att.filename,
+      size: att.size,
+      mimeType: att.mimeType || "",
+      created: att.created || "",
+      author: att.author?.displayName || "Unknown",
+      downloadUrl: att.content || `${this.config.baseUrl}/secure/attachment/${att.id}/${att.filename}`,
+      thumbnailUrl: att.thumbnail || void 0
+    }));
+  }
+  /**
+   * Lấy danh sách comment của một issue
+   */
+  async getComments(issueKey, maxResults = 50) {
+    const response = await this.client.get(
+      `/rest/api/2/issue/${issueKey}/comment`,
+      { params: { maxResults } }
+    );
+    const comments = response.data?.comments || [];
+    return comments.map((c) => ({
+      id: c.id,
+      body: c.body || "",
+      author: c.author?.displayName || "Unknown",
+      created: c.created || "",
+      updated: c.updated || ""
+    }));
+  }
+  /**
+   * Download nội dung attachment dạng base64.
+   * Jira PNJ dùng URL web /secure/attachment/{id}/{filename}, nên ưu tiên cách này.
+   */
+  async downloadAttachment(attachmentId, url3) {
+    console.error(`[JiraClient] Downloading attachment ${attachmentId}: ${url3}`);
+    try {
+      const response = await this.client.get(url3, {
+        responseType: "arraybuffer",
+        timeout: 3e4
+      });
+      const contentType = String(response.headers["content-type"] || "application/octet-stream");
+      const base643 = Buffer.from(response.data).toString("base64");
+      console.error(`[JiraClient] Downloaded ${attachmentId}: ${(base643.length / 1024).toFixed(1)} KB`);
+      return { contentType, base64: base643 };
+    } catch (err) {
+      console.error(`[JiraClient] Web URL failed: ${err.message}, trying REST API...`);
+      const apiUrl = `/rest/api/2/attachment/content/${attachmentId}`;
+      const response = await this.client.get(apiUrl, {
+        responseType: "arraybuffer",
+        timeout: 3e4
+      });
+      const contentType = String(response.headers["content-type"] || "application/octet-stream");
+      const base643 = Buffer.from(response.data).toString("base64");
+      return { contentType, base64: base643 };
+    }
+  }
+  /**
+   * Download tất cả attachments của 1 issue về thư mục local cache.
+   * Thư mục: ~/.pnj-task/{issueKey}/
+   */
+  getCacheDir(issueKey) {
+    return path.join(os.homedir(), ".pnj-task", issueKey);
+  }
+  async downloadAttachmentsToCache(issueKey) {
+    const atts = await this.getAttachments(issueKey);
+    const cacheDir = this.getCacheDir(issueKey);
+    fs.mkdirSync(cacheDir, { recursive: true });
+    const saved = [];
+    const errors = [];
+    for (const att of atts) {
+      const filePath = path.join(cacheDir, att.filename);
+      try {
+        console.error(`[JiraClient] Saving ${att.filename} to ${filePath}...`);
+        const { contentType, base64: base643 } = await this.downloadAttachment(att.id, att.downloadUrl);
+        const buffer = Buffer.from(base643, "base64");
+        fs.writeFileSync(filePath, buffer);
+        saved.push(filePath);
+        console.error(`[JiraClient] Saved: ${filePath} (${(buffer.length / 1024).toFixed(1)} KB)`);
+      } catch (err) {
+        errors.push(`${att.filename}: ${err.message}`);
+        console.error(`[JiraClient] Failed to save ${att.filename}: ${err.message}`);
+      }
+    }
+    return { saved, errors };
   }
   /**
    * Map raw API response → JiraIssue
@@ -47736,6 +47831,195 @@ ${result.issues.map(formatIssue).join("\n---\n")}`
           }
         ]
       };
+    }
+  );
+  server.tool(
+    "jira_get_attachments",
+    "L\u1EA5y danh s\xE1ch file \u0111\xEDnh k\xE8m (\u1EA3nh, t\xE0i li\u1EC7u...) c\u1EE7a m\u1ED9t Jira issue. Tr\u1EA3 v\u1EC1 t\xEAn file, k\xEDch th\u01B0\u1EDBc, \u0111\u1ECBnh d\u1EA1ng, v\xE0 link download. V\u1EDBi \u1EA3nh (<5MB), c\xF3 th\u1EC3 xem tr\u1EF1c ti\u1EBFp.",
+    {
+      issueKey: external_exports.string().describe("M\xE3 issue Jira, v\xED d\u1EE5: PROJ-123"),
+      downloadImages: external_exports.boolean().optional().default(false).describe("N\u1EBFu true, t\u1EA3i n\u1ED9i dung \u1EA3nh v\u1EC1 d\u1EA1ng base64 \u0111\u1EC3 xem tr\u1EF1c ti\u1EBFp (ch\u1EC9 \u1EA3nh <5MB)")
+    },
+    async ({ issueKey, downloadImages }) => {
+      const attachments = await jira.getAttachments(issueKey);
+      if (attachments.length === 0) {
+        return {
+          content: [{ type: "text", text: `Issue ${issueKey} kh\xF4ng c\xF3 file \u0111\xEDnh k\xE8m.` }]
+        };
+      }
+      const imageTypes = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml", "image/bmp"];
+      const parts = [];
+      parts.push({
+        type: "text",
+        text: `\u{1F4CE} **${issueKey}** c\xF3 **${attachments.length}** file \u0111\xEDnh k\xE8m:
+`
+      });
+      for (const att of attachments) {
+        const sizeKB = (att.size / 1024).toFixed(1);
+        const isImage = imageTypes.includes(att.mimeType);
+        parts.push({
+          type: "text",
+          text: `
+- **${att.filename}** (${sizeKB} KB, ${att.mimeType})
+  \u{1F4E5} T\u1EA3i v\u1EC1: ${att.downloadUrl}`
+        });
+        if (isImage && downloadImages && att.size < 5 * 1024 * 1024) {
+          try {
+            const { contentType, base64: base643 } = await jira.downloadAttachment(att.id, att.downloadUrl);
+            parts.push({ type: "text", text: `  \u{1F5BC}\uFE0F Xem tr\u01B0\u1EDBc:` });
+            parts.push({
+              type: "image",
+              data: base643,
+              mimeType: contentType
+            });
+          } catch {
+            parts.push({ type: "text", text: `  \u26A0\uFE0F Kh\xF4ng th\u1EC3 t\u1EA3i \u1EA3nh (c\xF3 th\u1EC3 c\u1EA7n x\xE1c th\u1EF1c b\u1ED5 sung)` });
+          }
+        }
+      }
+      return { content: parts };
+    }
+  );
+  server.tool(
+    "jira_get_comments",
+    "L\u1EA5y danh s\xE1ch comment tr\xEAn m\u1ED9t Jira issue. H\u1EEFu \xEDch \u0111\u1EC3 xem l\u1ECBch s\u1EED th\u1EA3o lu\u1EADn, y\xEAu c\u1EA7u s\u1EEDa, ho\u1EB7c ghi ch\xFA t\u1EEB team.",
+    {
+      issueKey: external_exports.string().describe("M\xE3 issue Jira, v\xED d\u1EE5: PROJ-123"),
+      maxResults: external_exports.number().optional().default(20).describe("S\u1ED1 l\u01B0\u1EE3ng comment t\u1ED1i \u0111a (m\u1EB7c \u0111\u1ECBnh 20)")
+    },
+    async ({ issueKey, maxResults }) => {
+      const comments = await jira.getComments(issueKey, maxResults);
+      if (comments.length === 0) {
+        return {
+          content: [{ type: "text", text: `Issue ${issueKey} ch\u01B0a c\xF3 comment n\xE0o.` }]
+        };
+      }
+      const lines = [
+        `\u{1F4AC} **${issueKey}** c\xF3 **${comments.length}** comment:
+`
+      ];
+      for (let i = 0; i < comments.length; i++) {
+        const c = comments[i];
+        const body = c.body.length > 1e3 ? c.body.substring(0, 1e3) + "..." : c.body;
+        lines.push(`---
+### ${i + 1}. ${c.author} \u2014 ${c.created}`);
+        lines.push(`${body}
+`);
+      }
+      return {
+        content: [{ type: "text", text: lines.join("\n") }]
+      };
+    }
+  );
+  server.tool(
+    "jira_analyze_task",
+    "Ph\xE2n t\xEDch t\u1ED5ng h\u1EE3p m\u1ED9t Jira issue: l\u1EA5y description, comments, v\xE0 c\xE1c \u1EA3nh \u0111\xEDnh k\xE8m (d\u1EA1ng base64 \u0111\u1EC3 Copilot Vision \u0111\u1ECDc text trong \u1EA3nh). D\xF9ng tool n\xE0y khi c\u1EA7n hi\u1EC3u r\xF5 y\xEAu c\u1EA7u task t\u1EEB m\u1ECDi ngu\u1ED3n d\u1EEF li\u1EC7u.",
+    {
+      issueKey: external_exports.string().describe("M\xE3 issue Jira, v\xED d\u1EE5: PROJ-123"),
+      includeComments: external_exports.boolean().optional().default(true).describe("C\xF3 l\u1EA5y comment kh\xF4ng (m\u1EB7c \u0111\u1ECBnh: true)"),
+      includeImages: external_exports.boolean().optional().default(true).describe("C\xF3 t\u1EA3i \u1EA3nh v\u1EC1 \u0111\u1EC3 \u0111\u1ECDc text kh\xF4ng (m\u1EB7c \u0111\u1ECBnh: true)"),
+      maxComments: external_exports.number().optional().default(10).describe("S\u1ED1 comment t\u1ED1i \u0111a"),
+      maxImages: external_exports.number().optional().default(5).describe("S\u1ED1 \u1EA3nh t\u1ED1i \u0111a (ch\u1EC9 \u1EA3nh < 5MB)")
+    },
+    async ({ issueKey, includeComments, includeImages, maxComments, maxImages }) => {
+      const issue2 = await jira.getIssue(issueKey);
+      const parts = [];
+      const info = [
+        `# \u{1F4CB} Ph\xE2n t\xEDch Task: ${issue2.key}`,
+        ``,
+        `| Field | Value |`,
+        `|---|---|`,
+        `| **Summary** | ${issue2.summary} |`,
+        `| **Status** | ${issue2.status} |`,
+        `| **Priority** | ${issue2.priority} |`,
+        `| **Type** | ${issue2.issueType} |`,
+        `| **Assignee** | ${issue2.assignee || "Unassigned"} |`,
+        `| **Project** | ${issue2.project} |`,
+        `| **Created** | ${issue2.created} |`,
+        `| **Updated** | ${issue2.updated} |`,
+        `| **Link** | ${issue2.url} |`,
+        ``
+      ];
+      if (issue2.description) {
+        info.push(`## \u{1F4DD} Description`);
+        info.push(issue2.description);
+        info.push(``);
+      }
+      parts.push({ type: "text", text: info.join("\n") });
+      if (includeComments) {
+        const comments = await jira.getComments(issueKey, maxComments);
+        if (comments.length > 0) {
+          const cmtLines = [`## \u{1F4AC} Comments (${comments.length})`, ``];
+          for (let i = 0; i < comments.length; i++) {
+            const c = comments[i];
+            const body = c.body.length > 1500 ? c.body.substring(0, 1500) + "..." : c.body;
+            cmtLines.push(`### ${i + 1}. ${c.author} \u2014 ${c.created}`);
+            cmtLines.push(body);
+            cmtLines.push(``);
+          }
+          parts.push({ type: "text", text: cmtLines.join("\n") });
+        }
+      }
+      if (includeImages) {
+        const { saved, errors } = await jira.downloadAttachmentsToCache(issueKey);
+        if (saved.length > 0) {
+          parts.push({
+            type: "text",
+            text: `## \u{1F5BC}\uFE0F \u1EA2nh \u0111\xEDnh k\xE8m (\u0111\xE3 cache v\u1EC1 local)
+\u{1F4C1} \`${jira.getCacheDir(issueKey)}\`
+`
+          });
+          saved.forEach((f) => {
+            parts.push({
+              type: "text",
+              text: `- \u{1F4F8} \`${f}\` \u2192 **H\xE3y d\xF9ng tool read_file \u0111\u1EC3 \u0111\u1ECDc \u1EA3nh n\xE0y v\xE0 tr\xEDch xu\u1EA5t text b\u1EB1ng Vision**`
+            });
+          });
+        }
+        if (errors.length > 0) {
+          parts.push({ type: "text", text: `
+\u26A0\uFE0F L\u1ED7i: ${errors.join(", ")}` });
+        }
+      }
+      parts.push({
+        type: "text",
+        text: `---
+## \u{1F916} Y\xEAu c\u1EA7u ph\xE2n t\xEDch
+D\u1EF1a tr\xEAn t\u1EA5t c\u1EA3 th\xF4ng tin tr\xEAn (description, comments, v\xE0 text trong \u1EA3nh \u0111\xE3 cache \u1EDF local), h\xE3y:
+1. D\xF9ng Vision \u0111\u1ECDc t\u1EEBng file \u1EA3nh trong th\u01B0 m\u1EE5c cache
+2. T\xF3m t\u1EAFt y\xEAu c\u1EA7u ch\xEDnh c\u1EE7a task
+3. Li\u1EC7t k\xEA c\xE1c \u0111i\u1EC3m c\u1EA7n l\xE0m c\u1EE5 th\u1EC3
+4. T\u1ED5ng h\u1EE3p c\xE1c \xFD ki\u1EBFn quan tr\u1ECDng t\u1EEB comment
+5. \u0110\u1ED1i chi\u1EBFu text trong \u1EA3nh v\u1EDBi m\xF4 t\u1EA3`
+      });
+      return { content: parts };
+    }
+  );
+  server.tool(
+    "jira_cache_task",
+    "Download t\u1EA5t c\u1EA3 \u1EA3nh & file \u0111\xEDnh k\xE8m c\u1EE7a m\u1ED9t issue v\u1EC1 th\u01B0 m\u1EE5c local (~/.pnj-task/{issueKey}/). D\xF9ng tool n\xE0y \u0111\u1EC3 t\u1EA1o knowledge base offline, sau \u0111\xF3 Copilot c\xF3 th\u1EC3 \u0111\u1ECDc file tr\u1EF1c ti\u1EBFp t\u1EEB \u1ED5 \u0111\u0129a.",
+    {
+      issueKey: external_exports.string().describe("M\xE3 issue Jira, v\xED d\u1EE5: PROJ-123")
+    },
+    async ({ issueKey }) => {
+      const cacheDir = jira.getCacheDir(issueKey);
+      const { saved, errors } = await jira.downloadAttachmentsToCache(issueKey);
+      const lines = [
+        `\u{1F4E5} **Cache task ${issueKey}** \u2192 \`${cacheDir}\`
+`
+      ];
+      if (saved.length > 0) {
+        lines.push(`\u2705 \u0110\xE3 l\u01B0u **${saved.length}** file:`);
+        saved.forEach((f) => lines.push(`   - \`${f}\``));
+      }
+      if (errors.length > 0) {
+        lines.push(`
+\u26A0\uFE0F L\u1ED7i **${errors.length}** file:`);
+        errors.forEach((e) => lines.push(`   - ${e}`));
+      }
+      lines.push(`
+\u{1F4A1} Copilot c\xF3 th\u1EC3 \u0111\u1ECDc c\xE1c file n\xE0y b\u1EB1ng c\xE1ch m\u1EDF tr\u1EF1c ti\u1EBFp \u0111\u01B0\u1EDDng d\u1EABn.`);
+      return { content: [{ type: "text", text: lines.join("\n") }] };
     }
   );
   const transport = new StdioServerTransport();
